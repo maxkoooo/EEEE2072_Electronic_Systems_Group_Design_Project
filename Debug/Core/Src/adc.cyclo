@@ -1,0 +1,6 @@
+../Core/Src/adc.c:7:6:ADCInit	1
+../Core/Src/adc.c:20:6:ADCStart	1
+../Core/Src/adc.c:24:6:ADCStop	1
+../Core/Src/adc.c:28:6:ADCHandleCallback	1
+../Core/Src/adc.c:33:7:ADCGetVoltage	1
+../Core/Src/adc.c:39:7:ADCCalculateFrequency	3
