@@ -1,5 +1,6 @@
 ../Core/Src/comparator.c:8:6:comparatorInit	1
-../Core/Src/comparator.c:14:6:comparatorStart	1
-../Core/Src/comparator.c:21:6:comparatorStop	1
-../Core/Src/comparator.c:26:6:comparatorHandleClockCallback	3
-../Core/Src/comparator.c:45:7:comparatorCalculateFrequency	1
+../Core/Src/comparator.c:21:6:comparatorStart	1
+../Core/Src/comparator.c:28:6:comparatorStop	1
+../Core/Src/comparator.c:33:6:comparatorCaptureCallback	3
+../Core/Src/comparator.c:47:6:comparatorPeriodElapsedCallback	1
+../Core/Src/comparator.c:51:7:getFrequency	1

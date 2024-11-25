@@ -66,13 +66,6 @@ uint32_t value_dac = 0;
 float voltage = 0;
 float max_voltage = 0;
 float frequency = 0;
-
-volatile uint8_t State = 0;
-volatile uint32_t T1 = 0;
-volatile uint32_t T2 = 0;
-volatile uint32_t Ticks = 0;
-volatile uint16_t TIM1_OVC = 0;
-volatile float Freq = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -156,13 +149,13 @@ int main(void)
 
   while (1)
   {
-//	  if(Freq != 0){
-		  lcd16x2_clear();
-	      lcd16x2_printf("f = %f", Freq);
-	      HAL_Delay(100);
+//	  if(comp->freq != 0){
+	  lcd16x2_clear();
+	  HAL_GPIO_WritePin(GPIOB, Backlight_Pin, GPIO_PIN_SET);
+	  lcd16x2_printf("f = %f", comp.freq);
+	  HAL_Delay(100);
 //	  }
 //	  voltage = ADCGetVoltage(&adc);
-
 
 //	  frequency = comparatorCalculateFrequency(&comp);
 
@@ -170,7 +163,6 @@ int main(void)
 //
 //	  HAL_UART_Transmit(&huart2, temp, sizeof(temp), 100);
 
-	  HAL_GPIO_WritePin(GPIOB, Backlight_Pin, GPIO_PIN_SET);
 
 //	  HAL_Delay(100);
 
@@ -579,23 +571,12 @@ static void MX_GPIO_Init(void)
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
 {
-    if(State == 0)
-    {
-        T1 = TIM1->CCR1;
-        TIM1_OVC = 0;
-        State = 1;
-    }
-    else if(State == 1)
-    {
-        T2 = TIM1->CCR1;
-        Ticks = (T2 + (TIM1_OVC * 65536)) - T1;
-        Freq = (float)(comp.timer_frequency/Ticks);
-        State = 0;
-    }
+    comparatorCaptureCallback(&comp);
 }
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
-    TIM1_OVC++;
+    comparatorPeriodElapsedCallback(&comp);
 }
 
 //void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {

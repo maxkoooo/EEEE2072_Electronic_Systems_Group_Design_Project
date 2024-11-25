@@ -9,42 +9,47 @@ void comparatorInit(Comparator *this, COMP_HandleTypeDef *hcomp, TIM_HandleTypeD
     this->hcomp = hcomp;
 	this->htim = htim;
 	this->timer_frequency = timer_frequency;
+
+	this->state = 0;
+	this->T1 = 0;
+	this->T2 = 0;
+	this->ticks = 0;
+	this->TIM1_OVC = 0;
+	this->freq = 0;
 }
 
 void comparatorStart(Comparator *this){
 	HAL_COMP_Start(this->hcomp);
 	HAL_TIM_Base_Start_IT(this->htim);
 	HAL_TIM_IC_Start_IT(this->htim, TIM_CHANNEL_1);
-	this -> current_comp_val = HAL_COMP_GetOutputLevel(this->hcomp);
+	this->current_comp_val = HAL_COMP_GetOutputLevel(this->hcomp);
 }
 
 void comparatorStop(Comparator *this){
     HAL_COMP_Stop(this->hcomp);
     HAL_TIM_Base_Stop_IT(this->htim);
+    // add tim ic stop
 }
 
-void comparatorHandleClockCallback(Comparator *this) {
-	COMP_HandleTypeDef  *hcomp = this->hcomp;
-	uint8_t *comp_val = &(this->current_comp_val);
-	uint64_t *ticks = &(this->ticks);
-	uint64_t *clock_ticks = &(this->clock_ticks);
-
-	if(*clock_ticks > 65535){
-		*ticks = 0;
-		*clock_ticks = 0;
+void comparatorCaptureCallback(Comparator *this) {
+	if(this->state == 0){
+		this->T1 = TIM1->CCR1;
+	    this->TIM1_OVC = 0;
+	    this->state = 1;
 	}
-
-	uint8_t current_comp_val = HAL_COMP_GetOutputLevel(hcomp);
-	if(current_comp_val != *comp_val){
-		(*ticks)++;
-		*comp_val = current_comp_val;
+	else if(this->state == 1){
+		this->T2 = TIM1->CCR1;
+	    this->ticks = (this->T2 + (this->TIM1_OVC * 65536)) - this->T1;
+	    this->freq = (float)(this->timer_frequency/this->ticks);
+	    this->state = 0;
 	}
-	(*clock_ticks)++;
 }
 
-float comparatorCalculateFrequency(Comparator *this){
-    float comp_freq = this->timer_frequency/this->period;
+void comparatorPeriodElapsedCallback(Comparator *this){
+	(this->TIM1_OVC)++;
+}
 
-    return comp_freq;
+float getFrequency(Comparator *this){
+    return this->freq;
 }
 
