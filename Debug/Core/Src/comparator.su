@@ -1,0 +1,5 @@
+../Core/Src/comparator.c:8:6:comparatorInit	24	static
+../Core/Src/comparator.c:14:6:comparatorStart	16	static
+../Core/Src/comparator.c:20:6:comparatorStop	16	static
+../Core/Src/comparator.c:25:6:comparatorHandleClockCallback	56	static
+../Core/Src/comparator.c:44:7:comparatorCalculateFrequency	32	static

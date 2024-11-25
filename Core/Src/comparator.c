@@ -12,13 +12,13 @@ void comparatorInit(Comparator *this, COMP_HandleTypeDef *hcomp, TIM_HandleTypeD
 }
 
 void comparatorStart(Comparator *this){
-	HAL_Comp_Start(this->hcomp);
+	HAL_COMP_Start(this->hcomp);
 	HAL_TIM_Base_Start_IT(this->htim);
 	this -> current_comp_val = HAL_COMP_GetOutputLevel(this->hcomp);
 }
 
 void comparatorStop(Comparator *this){
-    HAL_Comp_Stop(this->hcomp);
+    HAL_COMP_Stop(this->hcomp);
     HAL_TIM_Base_Stop_IT(this->htim);
 }
 
@@ -38,11 +38,11 @@ void comparatorHandleClockCallback(Comparator *this) {
 		(*ticks)++;
 		*comp_val = current_comp_val;
 	}
-	(*clock_ticks)++
+	(*clock_ticks)++;
 }
 
 float comparatorCalculateFrequency(Comparator *this){
-    float comp_freq = (0.5) * (this->timer_frequency * (float) this->ticks) / (float) this->clock_ticks;
+    float comp_freq = (this->timer_frequency * (float) this->ticks) / (float) this->clock_ticks;
 
     return comp_freq;
 }

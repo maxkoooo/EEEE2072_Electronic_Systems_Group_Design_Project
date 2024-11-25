@@ -52,7 +52,7 @@ COMP_HandleTypeDef hcomp1;
 
 DAC_HandleTypeDef hdac1;
 
-TIM_HandleTypeDef htim16;
+TIM_HandleTypeDef htim1;
 
 UART_HandleTypeDef huart2;
 
@@ -75,8 +75,8 @@ static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_DAC1_Init(void);
 static void MX_USART2_UART_Init(void);
-static void MX_TIM16_Init(void);
 static void MX_COMP1_Init(void);
+static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -95,6 +95,10 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
   // ADC Variables
+  float current_frequency = 0;
+  float current_speed = 0;
+  char temp[32];	// for printing floats to lcd
+
   uint32_t adc_buf[ADC_BUF_LEN] = {0};	//buffer array
   /* USER CODE END 1 */
 
@@ -120,13 +124,13 @@ int main(void)
   MX_ADC1_Init();
   MX_DAC1_Init();
   MX_USART2_UART_Init();
-  MX_TIM16_Init();
   MX_COMP1_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
   HAL_DAC_Start(&hdac1, DAC_CHANNEL_2);
 
   // Comparator Initialisation
-  comparatorInit(&comp, &hcomp1, &htim16, CLOCK_FREQUENCY);
+  comparatorInit(&comp, &hcomp1, &htim1, CLOCK_FREQUENCY);
 
   // ADC Initialisation
   HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
@@ -135,24 +139,29 @@ int main(void)
 
   // LCD Initialisation
   lcd16x2_init_4bits(GPIOA, RS_Pin, GPIOC, E_Pin,
-	  //      D0_GPIO_Port, D0_Pin, D1_Pin, D2_Pin, D3_Pin,
-	        GPIOB, D4_Pin, GPIOB, D5_Pin, GPIOB, D6_Pin, GPIOA, D7_Pin);
+    //      D0_GPIO_Port, D0_Pin, D1_Pin, D2_Pin, D3_Pin,
+          GPIOB, D4_Pin, GPIOB, D5_Pin, GPIOB, D6_Pin, GPIOA, D7_Pin);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  voltage = ADCGetVoltage(&adc);
 
-	  frequency = ADCCalculateFrequency(&adc, 0);
+//	  voltage = ADCGetVoltage(&adc);
 
-	  sprintf(temp, "%f.2\n", voltage);
+	  comparatorStart(&comp);
 
-	  HAL_UART_Transmit(&huart2, temp, sizeof(temp), 100);
+	  frequency = comparatorCalculateFrequency(&comp);
+
+//	  sprintf(temp, "%f.2\n", frequency);
+//
+//	  HAL_UART_Transmit(&huart2, temp, sizeof(temp), 100);
 
 	  HAL_GPIO_WritePin(GPIOB, Backlight_Pin, GPIO_PIN_SET);
-	  lcd16x2_printf("Voltage = %f", voltage);
+	  lcd16x2_printf("Frequency = %f", frequency);
+
+	  HAL_Delay(100);
 	  lcd16x2_clear();
 
 
@@ -357,34 +366,76 @@ static void MX_DAC1_Init(void)
 }
 
 /**
-  * @brief TIM16 Initialization Function
+  * @brief TIM1 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_TIM16_Init(void)
+static void MX_TIM1_Init(void)
 {
 
-  /* USER CODE BEGIN TIM16_Init 0 */
+  /* USER CODE BEGIN TIM1_Init 0 */
 
-  /* USER CODE END TIM16_Init 0 */
+  /* USER CODE END TIM1_Init 0 */
 
-  /* USER CODE BEGIN TIM16_Init 1 */
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_SlaveConfigTypeDef sSlaveConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_IC_InitTypeDef sConfigIC = {0};
 
-  /* USER CODE END TIM16_Init 1 */
-  htim16.Instance = TIM16;
-  htim16.Init.Prescaler = 0;
-  htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim16.Init.Period = 65535;
-  htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim16.Init.RepetitionCounter = 0;
-  htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim16) != HAL_OK)
+  /* USER CODE BEGIN TIM1_Init 1 */
+
+  /* USER CODE END TIM1_Init 1 */
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 0;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1.Init.Period = 65535;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN TIM16_Init 2 */
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_IC_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sSlaveConfig.SlaveMode = TIM_SLAVEMODE_TRIGGER;
+  sSlaveConfig.InputTrigger = TIM_TS_ETRF;
+  sSlaveConfig.TriggerPolarity = TIM_TRIGGERPOLARITY_NONINVERTED;
+  sSlaveConfig.TriggerPrescaler = TIM_TRIGGERPRESCALER_DIV1;
+  sSlaveConfig.TriggerFilter = 0;
+  if (HAL_TIM_SlaveConfigSynchro(&htim1, &sSlaveConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIMEx_RemapConfig(&htim1, TIM_TIM1_TI1_COMP1|TIM_TIM1_ETR_COMP1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_RISING;
+  sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
+  sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
+  sConfigIC.ICFilter = 4;
+  if (HAL_TIM_IC_ConfigChannel(&htim1, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM1_Init 2 */
 
-  /* USER CODE END TIM16_Init 2 */
+  /* USER CODE END TIM1_Init 2 */
 
 }
 
@@ -490,6 +541,12 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	// Checking for the right clock
+	if (htim == comp.htim) { // Comparator clock
+		comparatorHandleClockCallback(&comp);
+	}
+}
 //#ifdef __GNUC__
 //#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 //#else

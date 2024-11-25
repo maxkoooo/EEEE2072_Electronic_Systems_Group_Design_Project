@@ -7,6 +7,7 @@
 C_SRCS += \
 ../Core/Src/FFT.c \
 ../Core/Src/adc.c \
+../Core/Src/comparator.c \
 ../Core/Src/lcd16x2_v2.c \
 ../Core/Src/main.c \
 ../Core/Src/stm32l4xx_hal_msp.c \
@@ -18,6 +19,7 @@ C_SRCS += \
 C_DEPS += \
 ./Core/Src/FFT.d \
 ./Core/Src/adc.d \
+./Core/Src/comparator.d \
 ./Core/Src/lcd16x2_v2.d \
 ./Core/Src/main.d \
 ./Core/Src/stm32l4xx_hal_msp.d \
@@ -29,6 +31,7 @@ C_DEPS += \
 OBJS += \
 ./Core/Src/FFT.o \
 ./Core/Src/adc.o \
+./Core/Src/comparator.o \
 ./Core/Src/lcd16x2_v2.o \
 ./Core/Src/main.o \
 ./Core/Src/stm32l4xx_hal_msp.o \
@@ -45,7 +48,7 @@ Core/Src/%.o Core/Src/%.su Core/Src/%.cyclo: ../Core/Src/%.c Core/Src/subdir.mk
 clean: clean-Core-2f-Src
 
 clean-Core-2f-Src:
-	-$(RM) ./Core/Src/FFT.cyclo ./Core/Src/FFT.d ./Core/Src/FFT.o ./Core/Src/FFT.su ./Core/Src/adc.cyclo ./Core/Src/adc.d ./Core/Src/adc.o ./Core/Src/adc.su ./Core/Src/lcd16x2_v2.cyclo ./Core/Src/lcd16x2_v2.d ./Core/Src/lcd16x2_v2.o ./Core/Src/lcd16x2_v2.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/stm32l4xx_hal_msp.cyclo ./Core/Src/stm32l4xx_hal_msp.d ./Core/Src/stm32l4xx_hal_msp.o ./Core/Src/stm32l4xx_hal_msp.su ./Core/Src/stm32l4xx_it.cyclo ./Core/Src/stm32l4xx_it.d ./Core/Src/stm32l4xx_it.o ./Core/Src/stm32l4xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32l4xx.cyclo ./Core/Src/system_stm32l4xx.d ./Core/Src/system_stm32l4xx.o ./Core/Src/system_stm32l4xx.su
+	-$(RM) ./Core/Src/FFT.cyclo ./Core/Src/FFT.d ./Core/Src/FFT.o ./Core/Src/FFT.su ./Core/Src/adc.cyclo ./Core/Src/adc.d ./Core/Src/adc.o ./Core/Src/adc.su ./Core/Src/comparator.cyclo ./Core/Src/comparator.d ./Core/Src/comparator.o ./Core/Src/comparator.su ./Core/Src/lcd16x2_v2.cyclo ./Core/Src/lcd16x2_v2.d ./Core/Src/lcd16x2_v2.o ./Core/Src/lcd16x2_v2.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/stm32l4xx_hal_msp.cyclo ./Core/Src/stm32l4xx_hal_msp.d ./Core/Src/stm32l4xx_hal_msp.o ./Core/Src/stm32l4xx_hal_msp.su ./Core/Src/stm32l4xx_it.cyclo ./Core/Src/stm32l4xx_it.d ./Core/Src/stm32l4xx_it.o ./Core/Src/stm32l4xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32l4xx.cyclo ./Core/Src/system_stm32l4xx.d ./Core/Src/system_stm32l4xx.o ./Core/Src/system_stm32l4xx.su
 
 .PHONY: clean-Core-2f-Src
 
