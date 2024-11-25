@@ -195,14 +195,26 @@ void HAL_COMP_MspInit(COMP_HandleTypeDef* hcomp)
   /* USER CODE END COMP1_MspInit 0 */
 
     __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
     /**COMP1 GPIO Configuration
     PC5     ------> COMP1_INP
+    PB0     ------> COMP1_OUT
     */
     GPIO_InitStruct.Pin = GPIO_PIN_5;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
+    GPIO_InitStruct.Pin = GPIO_PIN_0;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF12_COMP1;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    /* COMP1 interrupt Init */
+    HAL_NVIC_SetPriority(COMP_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(COMP_IRQn);
   /* USER CODE BEGIN COMP1_MspInit 1 */
 
   /* USER CODE END COMP1_MspInit 1 */
@@ -227,9 +239,14 @@ void HAL_COMP_MspDeInit(COMP_HandleTypeDef* hcomp)
 
     /**COMP1 GPIO Configuration
     PC5     ------> COMP1_INP
+    PB0     ------> COMP1_OUT
     */
     HAL_GPIO_DeInit(GPIOC, GPIO_PIN_5);
 
+    HAL_GPIO_DeInit(GPIOB, GPIO_PIN_0);
+
+    /* COMP1 interrupt DeInit */
+    HAL_NVIC_DisableIRQ(COMP_IRQn);
   /* USER CODE BEGIN COMP1_MspDeInit 1 */
 
   /* USER CODE END COMP1_MspDeInit 1 */

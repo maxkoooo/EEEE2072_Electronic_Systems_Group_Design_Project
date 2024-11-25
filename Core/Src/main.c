@@ -30,7 +30,7 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 #define ADC_BUF_LEN 1
-#define CLOCK_FREQUENCY 16e3
+#define CLOCK_FREQUENCY 80e6
 #define TRANSMITTED_FREQUENCY 10.525e9
 /* USER CODE END PTD */
 
@@ -66,6 +66,13 @@ uint32_t value_dac = 0;
 float voltage = 0;
 float max_voltage = 0;
 float frequency = 0;
+
+volatile uint8_t State = 0;
+volatile uint32_t T1 = 0;
+volatile uint32_t T2 = 0;
+volatile uint32_t Ticks = 0;
+volatile uint16_t TIM1_OVC = 0;
+volatile float Freq = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -145,24 +152,27 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  comparatorStart(&comp);
+
   while (1)
   {
-
+//	  if(Freq != 0){
+		  lcd16x2_clear();
+	      lcd16x2_printf("f = %f", Freq);
+	      HAL_Delay(100);
+//	  }
 //	  voltage = ADCGetVoltage(&adc);
 
-	  comparatorStart(&comp);
 
-	  frequency = comparatorCalculateFrequency(&comp);
+//	  frequency = comparatorCalculateFrequency(&comp);
 
 //	  sprintf(temp, "%f.2\n", frequency);
 //
 //	  HAL_UART_Transmit(&huart2, temp, sizeof(temp), 100);
 
 	  HAL_GPIO_WritePin(GPIOB, Backlight_Pin, GPIO_PIN_SET);
-	  lcd16x2_printf("Frequency = %f", frequency);
 
-	  HAL_Delay(100);
-	  lcd16x2_clear();
+//	  HAL_Delay(100);
 
 
     /* USER CODE END WHILE */
@@ -311,7 +321,7 @@ static void MX_COMP1_Init(void)
   hcomp1.Init.BlankingSrce = COMP_BLANKINGSRC_NONE;
   hcomp1.Init.Mode = COMP_POWERMODE_HIGHSPEED;
   hcomp1.Init.WindowMode = COMP_WINDOWMODE_DISABLE;
-  hcomp1.Init.TriggerMode = COMP_TRIGGERMODE_EVENT_RISING;
+  hcomp1.Init.TriggerMode = COMP_TRIGGERMODE_IT_RISING;
   if (HAL_COMP_Init(&hcomp1) != HAL_OK)
   {
     Error_Handler();
@@ -541,12 +551,59 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-	// Checking for the right clock
-	if (htim == comp.htim) { // Comparator clock
-		comparatorHandleClockCallback(&comp);
-	}
+//volatile uint32_t timer_val = 0;
+////volatile uint32_t period = 0;
+//volatile uint8_t first_capture = 1;
+//char uart_buf[50];
+//int uart_buf_len;
+//
+//void HAL_COMP_TriggerCallback(COMP_HandleTypeDef *hcomp){
+//	if (hcomp->Instance == COMP1){
+//		uint32_t current_time = __HAL_TIM_GET_COUNTER(&htim1);
+//
+//		if (first_capture){
+//			// First rising edge detected, capture timestamp
+//		    timer_val = current_time;
+//		    first_capture = 0; // Set flag indicating we have our first timestamp
+//		}
+//		else{
+//		    // Second rising edge detected, calculate period
+//		    comp.period = current_time - timer_val;
+//
+//		    // Update timer_val to the latest timestamp for the next period calculation
+//		    timer_val = current_time;
+//		    first_capture = 1;
+//		}
+//    }
+//}
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
+{
+    if(State == 0)
+    {
+        T1 = TIM1->CCR1;
+        TIM1_OVC = 0;
+        State = 1;
+    }
+    else if(State == 1)
+    {
+        T2 = TIM1->CCR1;
+        Ticks = (T2 + (TIM1_OVC * 65536)) - T1;
+        Freq = (float)(comp.timer_frequency/Ticks);
+        State = 0;
+    }
 }
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
+{
+    TIM1_OVC++;
+}
+
+//void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+//	// Checking for the right clock
+//	if (htim == comp.htim) { // Comparator clock
+//		comparatorHandleClockCallback(&comp);
+//	}
+//}
 //#ifdef __GNUC__
 //#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 //#else

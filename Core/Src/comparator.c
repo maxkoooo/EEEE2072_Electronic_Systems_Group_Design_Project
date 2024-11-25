@@ -14,6 +14,7 @@ void comparatorInit(Comparator *this, COMP_HandleTypeDef *hcomp, TIM_HandleTypeD
 void comparatorStart(Comparator *this){
 	HAL_COMP_Start(this->hcomp);
 	HAL_TIM_Base_Start_IT(this->htim);
+	HAL_TIM_IC_Start_IT(this->htim, TIM_CHANNEL_1);
 	this -> current_comp_val = HAL_COMP_GetOutputLevel(this->hcomp);
 }
 
@@ -42,7 +43,7 @@ void comparatorHandleClockCallback(Comparator *this) {
 }
 
 float comparatorCalculateFrequency(Comparator *this){
-    float comp_freq = (this->timer_frequency * (float) this->ticks) / (float) this->clock_ticks;
+    float comp_freq = this->timer_frequency/this->period;
 
     return comp_freq;
 }
