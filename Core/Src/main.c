@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include "adc.h"
+#include "comparator.h"
 #include "lcd16x2_v2.h"
 /* USER CODE END Includes */
 
@@ -47,10 +48,18 @@
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
+COMP_HandleTypeDef hcomp1;
+
 DAC_HandleTypeDef hdac1;
+
+TIM_HandleTypeDef htim16;
+
+UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 ADC adc;  //ADC Struct
+
+Comparator comp;	//Comparator Struct
 
 uint32_t value_adc;
 uint32_t value_dac = 0;
@@ -65,6 +74,9 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_DAC1_Init(void);
+static void MX_USART2_UART_Init(void);
+static void MX_TIM16_Init(void);
+static void MX_COMP1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -107,13 +119,21 @@ int main(void)
   MX_DMA_Init();
   MX_ADC1_Init();
   MX_DAC1_Init();
+  MX_USART2_UART_Init();
+  MX_TIM16_Init();
+  MX_COMP1_Init();
   /* USER CODE BEGIN 2 */
   HAL_DAC_Start(&hdac1, DAC_CHANNEL_2);
+
+  // Comparator Initialisation
+  comparatorInit(&comp, &hcomp1, &htim16, CLOCK_FREQUENCY);
+
   // ADC Initialisation
   HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
-  ADCInit(&adc, &hadc1, ADC_BUF_LEN, adc_buf, 64000000, 128, 12, 12.5);
+  ADCInit(&adc, &hadc1, ADC_BUF_LEN, adc_buf, 64000000, 128, 12, 12.5); // try higher sampling frequency
   ADCStart(&adc);
 
+  // LCD Initialisation
   lcd16x2_init_4bits(GPIOA, RS_Pin, GPIOC, E_Pin,
 	  //      D0_GPIO_Port, D0_Pin, D1_Pin, D2_Pin, D3_Pin,
 	        GPIOB, D4_Pin, GPIOB, D5_Pin, GPIOB, D6_Pin, GPIOA, D7_Pin);
@@ -127,9 +147,12 @@ int main(void)
 
 	  frequency = ADCCalculateFrequency(&adc, 0);
 
+	  sprintf(temp, "%f.2\n", voltage);
+
+	  HAL_UART_Transmit(&huart2, temp, sizeof(temp), 100);
+
 	  HAL_GPIO_WritePin(GPIOB, Backlight_Pin, GPIO_PIN_SET);
 	  lcd16x2_printf("Voltage = %f", voltage);
-	  HAL_Delay(200);
 	  lcd16x2_clear();
 
 
@@ -257,6 +280,40 @@ static void MX_ADC1_Init(void)
 }
 
 /**
+  * @brief COMP1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_COMP1_Init(void)
+{
+
+  /* USER CODE BEGIN COMP1_Init 0 */
+
+  /* USER CODE END COMP1_Init 0 */
+
+  /* USER CODE BEGIN COMP1_Init 1 */
+
+  /* USER CODE END COMP1_Init 1 */
+  hcomp1.Instance = COMP1;
+  hcomp1.Init.InvertingInput = COMP_INPUT_MINUS_1_2VREFINT;
+  hcomp1.Init.NonInvertingInput = COMP_INPUT_PLUS_IO1;
+  hcomp1.Init.OutputPol = COMP_OUTPUTPOL_NONINVERTED;
+  hcomp1.Init.Hysteresis = COMP_HYSTERESIS_NONE;
+  hcomp1.Init.BlankingSrce = COMP_BLANKINGSRC_NONE;
+  hcomp1.Init.Mode = COMP_POWERMODE_HIGHSPEED;
+  hcomp1.Init.WindowMode = COMP_WINDOWMODE_DISABLE;
+  hcomp1.Init.TriggerMode = COMP_TRIGGERMODE_EVENT_RISING;
+  if (HAL_COMP_Init(&hcomp1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN COMP1_Init 2 */
+
+  /* USER CODE END COMP1_Init 2 */
+
+}
+
+/**
   * @brief DAC1 Initialization Function
   * @param None
   * @retval None
@@ -300,6 +357,73 @@ static void MX_DAC1_Init(void)
 }
 
 /**
+  * @brief TIM16 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM16_Init(void)
+{
+
+  /* USER CODE BEGIN TIM16_Init 0 */
+
+  /* USER CODE END TIM16_Init 0 */
+
+  /* USER CODE BEGIN TIM16_Init 1 */
+
+  /* USER CODE END TIM16_Init 1 */
+  htim16.Instance = TIM16;
+  htim16.Init.Prescaler = 0;
+  htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim16.Init.Period = 65535;
+  htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim16.Init.RepetitionCounter = 0;
+  htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim16) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM16_Init 2 */
+
+  /* USER CODE END TIM16_Init 2 */
+
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -328,8 +452,8 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, D6_Pin|D5_Pin|D4_Pin|Backlight_Pin, GPIO_PIN_RESET);
