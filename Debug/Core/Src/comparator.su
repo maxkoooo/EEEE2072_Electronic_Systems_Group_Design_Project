@@ -1,6 +1,6 @@
 ../Core/Src/comparator.c:8:6:comparatorInit	24	static
 ../Core/Src/comparator.c:21:6:comparatorStart	16	static
 ../Core/Src/comparator.c:28:6:comparatorStop	16	static
-../Core/Src/comparator.c:33:6:comparatorCaptureCallback	16	static
-../Core/Src/comparator.c:47:6:comparatorPeriodElapsedCallback	16	static
-../Core/Src/comparator.c:51:7:getFrequency	16	static
+../Core/Src/comparator.c:34:6:comparatorCaptureCallback	16	static
+../Core/Src/comparator.c:48:6:comparatorPeriodElapsedCallback	16	static
+../Core/Src/comparator.c:52:7:getFrequency	16	static

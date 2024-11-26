@@ -84,8 +84,8 @@ all: main-build
 main-build: ADC.elf secondary-outputs
 
 # Tool invocations
-ADC.elf ADC.map: $(OBJS) $(USER_OBJS) C:\Users\User\Desktop\university\ of\ nottingham\academics\year\ 2\electronic\ systems\ group\ design\ project\ADC\STM32L476RGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-g++ -o "ADC.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\User\Desktop\university of nottingham\academics\year 2\electronic systems group design project\ADC\STM32L476RGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ADC.map" -Wl,--gc-sections -static -L"C:\Users\User\Desktop\university of nottingham\academics\year 2\electronic systems group design project\ADC\Drivers\CMSIS\Lib\GCC" -u _printf_float --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
+ADC.elf ADC.map: $(OBJS) $(USER_OBJS) C:\Users\Kuek\vscode\ESGroupProject\Main\ Branch\EEEE2072_Electronic_Systems_Group_Design_Project\STM32L476RGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-g++ -o "ADC.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Kuek\vscode\ESGroupProject\Main Branch\EEEE2072_Electronic_Systems_Group_Design_Project\STM32L476RGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ADC.map" -Wl,--gc-sections -static -L"C:\Users\Kuek\vscode\ESGroupProject\Main Branch\EEEE2072_Electronic_Systems_Group_Design_Project\Drivers\CMSIS\Lib\GCC" -u _printf_float --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

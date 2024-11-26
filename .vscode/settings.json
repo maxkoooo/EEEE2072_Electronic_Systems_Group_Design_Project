@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "lcd16x2_v2.h": "c",
+        "adc.h": "c",
+        "comparator.h": "c",
+        "stm32l4xx_hal.h": "c"
+    }
+}

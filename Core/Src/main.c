@@ -25,6 +25,11 @@
 #include "adc.h"
 #include "comparator.h"
 #include "lcd16x2_v2.h"
+
+//lcd lines
+#include "stm32l4xx_hal.h"
+#include <string.h>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -37,6 +42,16 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+//lcd lines
+#define SELECT_THRESHOLD 3900    // Example threshold for "SELECT" button
+#define LEFT_THRESHOLD 2780      // Threshold for "LEFT" button
+#define UP_THRESHOLD 732        // Threshold for "UP" button
+#define DOWN_THRESHOLD 1770      // Threshold for "DOWN" button
+#define RIGHT_THRESHOLD 0     // Threshold for "RIGHT" button
+// NB_THRESHOLD is not used, leftover from previous code. Currently has no impact on anything
+#define NB_THRESHOLD 3970 	// Threshold for "No" button
+
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -46,6 +61,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+ADC_HandleTypeDef hadc2;
 DMA_HandleTypeDef hdma_adc1;
 
 COMP_HandleTypeDef hcomp1;
@@ -70,6 +86,7 @@ float frequency = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+void PeriphCommonClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
@@ -77,6 +94,7 @@ static void MX_DAC1_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_COMP1_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_ADC2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -98,6 +116,14 @@ int main(void)
   float current_frequency = 0;
   float current_speed = 0;
   char temp[32];	// for printing floats to lcd
+  int button_down = 0;
+  int speed_display_counter = 0;
+  int ADC_or_Comparator = 0;
+  float speed_value = 0;
+
+  uint16_t adc_value;
+  uint8_t key;
+  uint8_t ticks;
 
   uint32_t adc_buf[ADC_BUF_LEN] = {0};	//buffer array
   /* USER CODE END 1 */
@@ -114,6 +140,9 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
 
+  /* Configure the peripherals common clocks */
+  PeriphCommonClock_Config();
+
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
@@ -126,6 +155,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_COMP1_Init();
   MX_TIM1_Init();
+  MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
   HAL_DAC_Start(&hdac1, DAC_CHANNEL_2);
 
@@ -149,23 +179,139 @@ int main(void)
 
   while (1)
   {
+    //lcd backlight
+    HAL_GPIO_WritePin(GPIOB, Backlight_Pin, GPIO_PIN_SET);
+
+    char msg[50];
+    HAL_ADC_Start(&hadc2);
+    if (HAL_ADC_PollForConversion(&hadc2, HAL_MAX_DELAY) == HAL_OK)
+    {
+      adc_value = HAL_ADC_GetValue(&hadc2);
+
+      // Send ADC value to UART for monitoring
+      sprintf(msg, "ADC Value: %d\r\n", adc_value);
+      HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+
+      //HAL_Delay(100);  // Add a delay to give time to read the UART output
+    }
+
+    key = key_number(adc_value);
+
+    lcd16x2_clear();
+    lcd16x2_1stLine();
+
+	 //*//
+	 //*//
+	 switch(key) {
+		 case 1: //Select
+			 //lcd16x2_printf("SELECT Pressed");
+			 break;
+		 case 2: //Left
+			 ADC_or_Comparator = 0;
+			 break;
+		 case 3: //Up
+       if (button_down == 0)
+       {
+          speed_display_counter = (speed_display_counter + 1)%3;
+          button_down == 1;
+       }
+			 break;
+		 case 4: //Down
+       if (button_down == 0)
+       {
+      	  speed_display_counter = (speed_display_counter + 2)%3;
+          button_down == 1;
+       }
+			 break;
+		 case 5: //Right
+       ADC_or_Comparator = 1;
+			 break;
+		 case 6: //Null
+       button_down = 0;
+			 break;
+	 }
+
+   if (ADC_or_Comparator == 0) // ADC Case
+   {
+     lcd16x2_1stLine();
+     lcd16x2_printf("ADC  :");
+     lcd16x2_2ndLine();
+      switch(speed_display_counter)
+      {
+        case 0: // mm/s
+
+
+          lcd16x2_printf("%d", speed_value);
+          lcd16x2_setCursor(1,5);
+          lcd16x2_printf("mm/s");
+        break;
+
+        case 1: // m/s
+
+
+          lcd16x2_printf("%d", speed_value);
+          lcd16x2_setCursor(1,6);
+          lcd16x2_printf("m/s");
+        break;
+
+        case 2: // km/h
+
+
+          lcd16x2_printf("%d", speed_value);
+          lcd16x2_setCursor(1,5);
+          lcd16x2_printf("km/h");
+        break;
+      }
+   }
+   else //Comparator Case
+   {
+     lcd16x2_1stLine();
+     lcd16x2_printf("Comparator :");
+     lcd16x2_2ndLine();
+      switch(speed_display_counter)
+      {
+        case 0: // mm/s
+          lcd16x2_printf("1111");
+        break;
+        
+        case 1: // m/s
+          lcd16x2_printf("2222");
+        break;
+
+        case 2: // km/h
+          lcd16x2_printf("3333");
+        break;
+      }
+   }
+	 //*//
+	 //lcd16x2_printf("ADC: %d", adc_value);
+	 HAL_Delay(100);
+   /*
+    lcd16x2_1stLine();
+	  lcd16x2_printf("ADC: %d", adc_value);
+  	lcd16x2_2ndLine();
+  	ticks++;
+	  lcd16x2_printf("%d", ticks);
+
+    HAL_Delay(500);
+
+    lcd16x2_clear();
+    */
+
+
+
+
 //	  if(comp->freq != 0){
-	  lcd16x2_clear();
-	  HAL_GPIO_WritePin(GPIOB, Backlight_Pin, GPIO_PIN_SET);
-	  lcd16x2_printf("f = %f", comp.freq);
-	  HAL_Delay(100);
+	  // lcd16x2_clear();
+	  // HAL_GPIO_WritePin(GPIOB, Backlight_Pin, GPIO_PIN_SET);
+	  // lcd16x2_printf("f = %f", comp.freq);
+	  // HAL_Delay(100);
 //	  }
 //	  voltage = ADCGetVoltage(&adc);
-
 //	  frequency = comparatorCalculateFrequency(&comp);
-
 //	  sprintf(temp, "%f.2\n", frequency);
-//
 //	  HAL_UART_Transmit(&huart2, temp, sizeof(temp), 100);
-
-
 //	  HAL_Delay(100);
-
 
     /* USER CODE END WHILE */
 
@@ -173,6 +319,42 @@ int main(void)
   }
   /* USER CODE END 3 */
 }
+int key_number(unsigned int adc_value){
+  int key;
+    if (adc_value == 0) {
+			key= 5;  // RIGHT button
+		} else if (adc_value < UP_THRESHOLD + 50 && adc_value > UP_THRESHOLD - 50) {
+			key= 3;  // UP button
+		} else if (adc_value < DOWN_THRESHOLD + 50 && adc_value > DOWN_THRESHOLD - 50) {
+			key= 4;  // DOWN button
+		} else if (adc_value < LEFT_THRESHOLD + 50 && adc_value > LEFT_THRESHOLD - 50) {
+			key= 2;  // LEFT button
+		} else if (adc_value < SELECT_THRESHOLD + 50 && adc_value > SELECT_THRESHOLD - 50) {
+			key= 1;  // SELECT button
+		}
+	    else {
+			key= 6;  // No button
+	  }
+    return (key);
+}
+/*
+int LCD_Button_Reading(DAC_HandleTypeDef *hadc2){
+  uint16_t adc_value;
+  char msg[50];
+  HAL_ADC_Start(&hadc2);
+  //if (HAL_ADC_PollForConversion(&hadc2, HAL_MAX_DELAY) == HAL_OK)
+  //{
+    adc_value = HAL_ADC_GetValue(&hadc2);
+
+    // Send ADC value to UART for monitoring
+    sprintf(msg, "ADC Value: %d\r\n", adc_value);
+    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+
+    HAL_Delay(100);  // Add a delay to give time to read the UART output
+  //}
+  return(adc_value);
+}
+*/
 
 /**
   * @brief System Clock Configuration
@@ -218,6 +400,31 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief Peripherals Common Clock Configuration
+  * @retval None
+  */
+void PeriphCommonClock_Config(void)
+{
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+
+  /** Initializes the peripherals clock
+  */
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
+  PeriphClkInit.AdcClockSelection = RCC_ADCCLKSOURCE_PLLSAI1;
+  PeriphClkInit.PLLSAI1.PLLSAI1Source = RCC_PLLSOURCE_HSI;
+  PeriphClkInit.PLLSAI1.PLLSAI1M = 1;
+  PeriphClkInit.PLLSAI1.PLLSAI1N = 8;
+  PeriphClkInit.PLLSAI1.PLLSAI1P = RCC_PLLP_DIV7;
+  PeriphClkInit.PLLSAI1.PLLSAI1Q = RCC_PLLQ_DIV2;
+  PeriphClkInit.PLLSAI1.PLLSAI1R = RCC_PLLR_DIV2;
+  PeriphClkInit.PLLSAI1.PLLSAI1ClockOut = RCC_PLLSAI1_ADC1CLK;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
   }
@@ -287,6 +494,64 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief ADC2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC2_Init(void)
+{
+
+  /* USER CODE BEGIN ADC2_Init 0 */
+
+  /* USER CODE END ADC2_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC2_Init 1 */
+
+  /* USER CODE END ADC2_Init 1 */
+
+  /** Common config
+  */
+  hadc2.Instance = ADC2;
+  hadc2.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV256;
+  hadc2.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc2.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc2.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc2.Init.LowPowerAutoWait = DISABLE;
+  hadc2.Init.ContinuousConvMode = DISABLE;
+  hadc2.Init.NbrOfConversion = 1;
+  hadc2.Init.DiscontinuousConvMode = DISABLE;
+  hadc2.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc2.Init.DMAContinuousRequests = DISABLE;
+  hadc2.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+  hadc2.Init.OversamplingMode = DISABLE;
+  if (HAL_ADC_Init(&hadc2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_5;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
+  sConfig.SingleDiff = ADC_SINGLE_ENDED;
+  sConfig.OffsetNumber = ADC_OFFSET_NONE;
+  sConfig.Offset = 0;
+  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC2_Init 2 */
+
+  /* USER CODE END ADC2_Init 2 */
 
 }
 
