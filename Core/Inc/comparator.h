@@ -22,6 +22,6 @@ typedef struct{
 void comparatorInit(Comparator *this, COMP_HandleTypeDef *hcomp, TIM_HandleTypeDef *htim, float timer_frequency);
 void comparatorStart(Comparator *this);
 void comparatorStop(Comparator *this);
-void comparatorHandleClockCallback(Comparator *this);
 void comparatorCaptureCallback(Comparator *this);
+void comparatorPeriodElapsedCallback(Comparator *this);
 float getFrequency(Comparator *this);

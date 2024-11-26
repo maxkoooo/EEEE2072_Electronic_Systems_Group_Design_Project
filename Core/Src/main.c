@@ -25,11 +25,12 @@
 #include "adc.h"
 #include "comparator.h"
 #include "lcd16x2_v2.h"
+#include "FFT.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-#define ADC_BUF_LEN 1
+#define ADC_BUF_LEN 4096
 #define CLOCK_FREQUENCY 80e6
 #define TRANSMITTED_FREQUENCY 10.525e9
 /* USER CODE END PTD */
@@ -50,8 +51,6 @@ DMA_HandleTypeDef hdma_adc1;
 
 COMP_HandleTypeDef hcomp1;
 
-DAC_HandleTypeDef hdac1;
-
 TIM_HandleTypeDef htim1;
 
 UART_HandleTypeDef huart2;
@@ -61,8 +60,7 @@ ADC adc;  //ADC Struct
 
 Comparator comp;	//Comparator Struct
 
-uint32_t value_adc;
-uint32_t value_dac = 0;
+uint32_t adc_buf[ADC_BUF_LEN] = {0};	//buffer array
 float voltage = 0;
 float max_voltage = 0;
 float frequency = 0;
@@ -73,7 +71,6 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
-static void MX_DAC1_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_COMP1_Init(void);
 static void MX_TIM1_Init(void);
@@ -94,12 +91,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  // ADC Variables
-  float current_frequency = 0;
-  float current_speed = 0;
-  char temp[32];	// for printing floats to lcd
-
-  uint32_t adc_buf[ADC_BUF_LEN] = {0};	//buffer array
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -122,19 +113,17 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_ADC1_Init();
-  MX_DAC1_Init();
   MX_USART2_UART_Init();
   MX_COMP1_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_DAC_Start(&hdac1, DAC_CHANNEL_2);
 
   // Comparator Initialisation
   comparatorInit(&comp, &hcomp1, &htim1, CLOCK_FREQUENCY);
 
   // ADC Initialisation
   HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
-  ADCInit(&adc, &hadc1, ADC_BUF_LEN, adc_buf, 64000000, 128, 12, 12.5); // try higher sampling frequency
+  ADCInit(&adc, &hadc1, ADC_BUF_LEN, adc_buf, 64000000, 128, 12, 92.5);
   ADCStart(&adc);
 
   // LCD Initialisation
@@ -149,22 +138,23 @@ int main(void)
 
   while (1)
   {
-//	  if(comp->freq != 0){
-	  lcd16x2_clear();
-	  HAL_GPIO_WritePin(GPIOB, Backlight_Pin, GPIO_PIN_SET);
-	  lcd16x2_printf("f = %f", comp.freq);
-	  HAL_Delay(100);
-//	  }
-//	  voltage = ADCGetVoltage(&adc);
+//	  lcd16x2_clear();
+//	  HAL_GPIO_WritePin(GPIOB, Backlight_Pin, GPIO_PIN_SET);
+//	  lcd16x2_printf("f = %f", comp.freq);
+//	  HAL_Delay(100);
+	  ADCStart(&adc);
 
+	  lcd16x2_clear();
+//	  voltage = ADCGetVoltage(&adc);
+	  frequency = ADCCalculateFrequency(&adc, 0);
+	  HAL_GPIO_WritePin(GPIOB, Backlight_Pin, GPIO_PIN_SET);
+	  lcd16x2_printf("f = %f", frequency);
+	  HAL_Delay(100);
 //	  frequency = comparatorCalculateFrequency(&comp);
 
 //	  sprintf(temp, "%f.2\n", frequency);
 //
 //	  HAL_UART_Transmit(&huart2, temp, sizeof(temp), 100);
-
-
-//	  HAL_Delay(100);
 
 
     /* USER CODE END WHILE */
@@ -245,7 +235,7 @@ static void MX_ADC1_Init(void)
   /** Common config
   */
   hadc1.Instance = ADC1;
-  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV256;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV128;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
@@ -306,7 +296,7 @@ static void MX_COMP1_Init(void)
 
   /* USER CODE END COMP1_Init 1 */
   hcomp1.Instance = COMP1;
-  hcomp1.Init.InvertingInput = COMP_INPUT_MINUS_1_2VREFINT;
+  hcomp1.Init.InvertingInput = COMP_INPUT_MINUS_1_4VREFINT;
   hcomp1.Init.NonInvertingInput = COMP_INPUT_PLUS_IO1;
   hcomp1.Init.OutputPol = COMP_OUTPUTPOL_NONINVERTED;
   hcomp1.Init.Hysteresis = COMP_HYSTERESIS_NONE;
@@ -321,49 +311,6 @@ static void MX_COMP1_Init(void)
   /* USER CODE BEGIN COMP1_Init 2 */
 
   /* USER CODE END COMP1_Init 2 */
-
-}
-
-/**
-  * @brief DAC1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_DAC1_Init(void)
-{
-
-  /* USER CODE BEGIN DAC1_Init 0 */
-
-  /* USER CODE END DAC1_Init 0 */
-
-  DAC_ChannelConfTypeDef sConfig = {0};
-
-  /* USER CODE BEGIN DAC1_Init 1 */
-
-  /* USER CODE END DAC1_Init 1 */
-
-  /** DAC Initialization
-  */
-  hdac1.Instance = DAC1;
-  if (HAL_DAC_Init(&hdac1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** DAC channel OUT2 config
-  */
-  sConfig.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_DISABLE;
-  sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
-  sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
-  sConfig.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_DISABLE;
-  sConfig.DAC_UserTrimming = DAC_TRIMMING_FACTORY;
-  if (HAL_DAC_ConfigChannel(&hdac1, &sConfig, DAC_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN DAC1_Init 2 */
-
-  /* USER CODE END DAC1_Init 2 */
 
 }
 
@@ -543,31 +490,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-//volatile uint32_t timer_val = 0;
-////volatile uint32_t period = 0;
-//volatile uint8_t first_capture = 1;
-//char uart_buf[50];
-//int uart_buf_len;
-//
-//void HAL_COMP_TriggerCallback(COMP_HandleTypeDef *hcomp){
-//	if (hcomp->Instance == COMP1){
-//		uint32_t current_time = __HAL_TIM_GET_COUNTER(&htim1);
-//
-//		if (first_capture){
-//			// First rising edge detected, capture timestamp
-//		    timer_val = current_time;
-//		    first_capture = 0; // Set flag indicating we have our first timestamp
-//		}
-//		else{
-//		    // Second rising edge detected, calculate period
-//		    comp.period = current_time - timer_val;
-//
-//		    // Update timer_val to the latest timestamp for the next period calculation
-//		    timer_val = current_time;
-//		    first_capture = 1;
-//		}
-//    }
-//}
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
 {
@@ -579,12 +501,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
     comparatorPeriodElapsedCallback(&comp);
 }
 
-//void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-//	// Checking for the right clock
-//	if (htim == comp.htim) { // Comparator clock
-//		comparatorHandleClockCallback(&comp);
-//	}
-//}
+// Called when first half of buffer is filled
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
+	HAL_GPIO_WritePin(D7_GPIO_Port, D4_Pin, GPIO_PIN_SET);
+}
+
+// Called when buffer is completely filled
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
+	HAL_GPIO_WritePin(D7_GPIO_Port, D4_Pin, GPIO_PIN_RESET);
+	if (hadc == adc.hadc) {
+		ADCHandleCallback(&adc);
+	}
+}
+
 //#ifdef __GNUC__
 //#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 //#else
