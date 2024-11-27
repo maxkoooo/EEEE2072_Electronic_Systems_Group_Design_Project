@@ -446,3 +446,29 @@ void lcd16x2_printf(const char* str, ...)
     lcd16x2_writeData((uint8_t)stringArray[i]);
   }
 }
+
+/**
+ * @brief Returns values based on button pressed
+ */
+char lcd16x2_getButton(ADC_HandleTypeDef *hadc){
+	uint16_t button_value;
+	HAL_ADC_Start(hadc);
+
+	if (HAL_ADC_PollForConversion(hadc, HAL_MAX_DELAY) == HAL_OK){
+		button_value = HAL_ADC_GetValue(hadc);
+	}
+
+	if (button_value < 10) {
+		return 'R';
+	} else if (button_value < 1000) {
+		return 'U';
+	} else if (button_value < 2000) {
+		return 'D';
+	} else if (button_value < 3000) {
+		return 'L';
+	} else if (button_value < 3500) {
+		return 'S';
+	} else {
+		return 'N';
+	}
+}

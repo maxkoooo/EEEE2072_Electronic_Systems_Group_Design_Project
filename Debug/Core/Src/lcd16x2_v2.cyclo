@@ -19,3 +19,4 @@
 ../Core/Src/lcd16x2_v2.c:415:6:lcd16x2_shiftRight	2
 ../Core/Src/lcd16x2_v2.c:426:6:lcd16x2_shiftLeft	2
 ../Core/Src/lcd16x2_v2.c:437:6:lcd16x2_printf	3
+../Core/Src/lcd16x2_v2.c:453:6:lcd16x2_getButton	7

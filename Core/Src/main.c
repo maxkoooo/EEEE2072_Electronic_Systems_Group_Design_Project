@@ -47,6 +47,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+ADC_HandleTypeDef hadc2;
 DMA_HandleTypeDef hdma_adc1;
 
 COMP_HandleTypeDef hcomp1;
@@ -61,19 +62,18 @@ ADC adc;  //ADC Struct
 Comparator comp;	//Comparator Struct
 
 uint32_t adc_buf[ADC_BUF_LEN] = {0};	//buffer array
-float voltage = 0;
-float max_voltage = 0;
-float frequency = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+void PeriphCommonClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_COMP1_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_ADC2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -89,8 +89,10 @@ static void MX_TIM1_Init(void);
   */
 int main(void)
 {
-
   /* USER CODE BEGIN 1 */
+	char sampling_mode = 'L';
+	int units_mode = 0;
+	float current_frequency = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -105,6 +107,9 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
 
+  /* Configure the peripherals common clocks */
+  PeriphCommonClock_Config();
+
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
@@ -116,6 +121,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_COMP1_Init();
   MX_TIM1_Init();
+  MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
 
   // Comparator Initialisation
@@ -124,7 +130,6 @@ int main(void)
   // ADC Initialisation
   HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
   ADCInit(&adc, &hadc1, ADC_BUF_LEN, adc_buf, 64000000, 128, 12, 92.5);
-  ADCStart(&adc);
 
   // LCD Initialisation
   lcd16x2_init_4bits(GPIOA, RS_Pin, GPIOC, E_Pin,
@@ -134,27 +139,83 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  comparatorStart(&comp);
-
   while (1)
   {
-//	  lcd16x2_clear();
-//	  HAL_GPIO_WritePin(GPIOB, Backlight_Pin, GPIO_PIN_SET);
-//	  lcd16x2_printf("f = %f", comp.freq);
-//	  HAL_Delay(100);
-	  ADCStart(&adc);
-
-	  lcd16x2_clear();
-//	  voltage = ADCGetVoltage(&adc);
-	  frequency = ADCCalculateFrequency(&adc, 0);
+	  // LCD Backlight
 	  HAL_GPIO_WritePin(GPIOB, Backlight_Pin, GPIO_PIN_SET);
-	  lcd16x2_printf("f = %f", frequency);
-	  HAL_Delay(100);
-//	  frequency = comparatorCalculateFrequency(&comp);
+	  lcd16x2_clear();
 
-//	  sprintf(temp, "%f.2\n", frequency);
-//
-//	  HAL_UART_Transmit(&huart2, temp, sizeof(temp), 100);
+	  char current_button = lcd16x2_getButton(&hadc2);
+
+	  switch(current_button) {
+	  	// Select
+        case 'S':
+          //lcd16x2_printf("SELECT Pressed");
+          break;
+        // Left
+        case 'L':
+        	comparatorStop(&comp);
+        	ADCStart(&adc);
+            sampling_mode = 'L';	// ADC
+            break;
+        // Right
+        case 'R':
+        	ADCStop(&adc);
+        	comparatorStart(&comp);
+            sampling_mode = 'R';	// Comparator
+            break;
+        // Up
+        case 'U':
+            units_mode = (units_mode + 1)%3;
+            HAL_Delay(100);
+            break;
+        // Down
+        case 'D':
+        	units_mode = (units_mode + 2)%3;
+        	HAL_Delay(100);
+        	break;
+        // Null
+        case 'N':
+        	break;
+	  }
+
+	  if(sampling_mode == 'L'){ // ADC
+		  ADCStart(&adc);
+		  lcd16x2_1stLine();
+	  	  lcd16x2_printf("ADC  :");
+		  lcd16x2_2ndLine();
+
+		  current_frequency = ADCCalculateFrequency(&adc, 0);
+		  lcd16x2_printf("f = %.2f", current_frequency);
+	  }
+	  else if(sampling_mode == 'R'){ // Comparator
+		  lcd16x2_1stLine();
+	  	  lcd16x2_printf("COMP  :");
+		  lcd16x2_2ndLine();
+		  current_frequency = comp.freq;
+		  lcd16x2_printf("f = %.2f", current_frequency);
+
+	  }
+
+	  switch(units_mode){
+		  // km/h
+		  case 0:
+//		      lcd16x2_setCursor(1,5);
+		      lcd16x2_printf("km/h");
+		      break;
+		  // m/s
+		  case 1:
+//		      lcd16x2_setCursor(1,6);
+		      lcd16x2_printf("m/s");
+		      break;
+		  // mph
+		  case 2:
+//		      lcd16x2_setCursor(1,5);
+		      lcd16x2_printf("mph");
+		      break;
+	  }
+
+	  HAL_Delay(100);
 
 
     /* USER CODE END WHILE */
@@ -208,6 +269,31 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief Peripherals Common Clock Configuration
+  * @retval None
+  */
+void PeriphCommonClock_Config(void)
+{
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+
+  /** Initializes the peripherals clock
+  */
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
+  PeriphClkInit.AdcClockSelection = RCC_ADCCLKSOURCE_PLLSAI1;
+  PeriphClkInit.PLLSAI1.PLLSAI1Source = RCC_PLLSOURCE_HSI;
+  PeriphClkInit.PLLSAI1.PLLSAI1M = 1;
+  PeriphClkInit.PLLSAI1.PLLSAI1N = 8;
+  PeriphClkInit.PLLSAI1.PLLSAI1P = RCC_PLLP_DIV7;
+  PeriphClkInit.PLLSAI1.PLLSAI1Q = RCC_PLLQ_DIV2;
+  PeriphClkInit.PLLSAI1.PLLSAI1R = RCC_PLLR_DIV2;
+  PeriphClkInit.PLLSAI1.PLLSAI1ClockOut = RCC_PLLSAI1_ADC1CLK;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
   }
@@ -277,6 +363,64 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief ADC2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC2_Init(void)
+{
+
+  /* USER CODE BEGIN ADC2_Init 0 */
+
+  /* USER CODE END ADC2_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC2_Init 1 */
+
+  /* USER CODE END ADC2_Init 1 */
+
+  /** Common config
+  */
+  hadc2.Instance = ADC2;
+  hadc2.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV128;
+  hadc2.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc2.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc2.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc2.Init.LowPowerAutoWait = DISABLE;
+  hadc2.Init.ContinuousConvMode = DISABLE;
+  hadc2.Init.NbrOfConversion = 1;
+  hadc2.Init.DiscontinuousConvMode = DISABLE;
+  hadc2.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc2.Init.DMAContinuousRequests = DISABLE;
+  hadc2.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+  hadc2.Init.OversamplingMode = DISABLE;
+  if (HAL_ADC_Init(&hadc2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_5;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
+  sConfig.SingleDiff = ADC_SINGLE_ENDED;
+  sConfig.OffsetNumber = ADC_OFFSET_NONE;
+  sConfig.Offset = 0;
+  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC2_Init 2 */
+
+  /* USER CODE END ADC2_Init 2 */
 
 }
 

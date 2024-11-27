@@ -115,4 +115,9 @@ void lcd16x2_shiftLeft(uint8_t offset);
  */
 void lcd16x2_printf(const char* str, ...);
 
+/**
+ * @brief Returns values based on button pressed
+ */
+char lcd16x2_getButton(ADC_HandleTypeDef *hadc);
+
 #endif /* LCD16X2_H_ */
