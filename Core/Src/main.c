@@ -238,15 +238,7 @@ int main(void)
      lcd16x2_2ndLine();
       switch(speed_display_counter)
       {
-        case 0: // mm/s
-
-
-          lcd16x2_printf("%d", speed_value);
-          lcd16x2_setCursor(1,5);
-          lcd16x2_printf("mm/s");
-        break;
-
-        case 1: // m/s
+        case 0: // m/s
 
 
           lcd16x2_printf("%d", speed_value);
@@ -254,12 +246,20 @@ int main(void)
           lcd16x2_printf("m/s");
         break;
 
-        case 2: // km/h
+        case 1: // km/h
 
 
-          lcd16x2_printf("%d", speed_value);
+          lcd16x2_printf("%d", speed_value * 18/5);
           lcd16x2_setCursor(1,5);
           lcd16x2_printf("km/h");
+        break;
+
+        case 2: // mph
+        
+
+          lcd16x2_printf("%d", speed_value * 0.447);
+          lcd16x2_setCursor(1,6);
+          lcd16x2_printf("mph");
         break;
       }
    }
@@ -270,16 +270,28 @@ int main(void)
      lcd16x2_2ndLine();
       switch(speed_display_counter)
       {
-        case 0: // mm/s
-          lcd16x2_printf("1111");
+        case 0: // m/s
+
+
+          lcd16x2_printf("%d", speed_value);
+          lcd16x2_setCursor(1,6);
+          lcd16x2_printf("m/s");
         break;
         
-        case 1: // m/s
-          lcd16x2_printf("2222");
+        case 1: // km/h
+
+
+          lcd16x2_printf("%d", speed_value * 18/5);
+          lcd16x2_setCursor(1,5);
+          lcd16x2_printf("km/h");
         break;
 
-        case 2: // km/h
-          lcd16x2_printf("3333");
+        case 2: // mph
+
+
+          lcd16x2_printf("%d", speed_value * 0.447);
+          lcd16x2_setCursor(1,6);
+          lcd16x2_printf("mph");
         break;
       }
    }
@@ -319,6 +331,8 @@ int main(void)
   }
   /* USER CODE END 3 */
 }
+
+
 int key_number(unsigned int adc_value){
   int key;
     if (adc_value == 0) {
@@ -337,6 +351,8 @@ int key_number(unsigned int adc_value){
 	  }
     return (key);
 }
+
+
 /*
 int LCD_Button_Reading(DAC_HandleTypeDef *hadc2){
   uint16_t adc_value;
@@ -360,6 +376,8 @@ int LCD_Button_Reading(DAC_HandleTypeDef *hadc2){
   * @brief System Clock Configuration
   * @retval None
   */
+
+
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
