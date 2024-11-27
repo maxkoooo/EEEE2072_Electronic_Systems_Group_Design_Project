@@ -60,6 +60,7 @@ int start_FFT(int *flag, struct ADC_param *ADC_var, struct FFT_res *FFT_var);
 *@param: velocity 		Stores the calculation result
 *@retval: none
 */
+float calculateSpeed(float detected, float transmitted);
 
 void get_velocity(float fdominant, float fwave, float * velocity);
 
