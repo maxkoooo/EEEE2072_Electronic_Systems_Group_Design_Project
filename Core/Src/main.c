@@ -64,6 +64,7 @@ uint32_t adc_buf[ADC_BUF_LEN] = {0};	//buffer array
 float voltage = 0;
 float max_voltage = 0;
 float frequency = 0;
+float velocity = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -147,8 +148,10 @@ int main(void)
 	  lcd16x2_clear();
 //	  voltage = ADCGetVoltage(&adc);
 	  frequency = ADCCalculateFrequency(&adc, 0);
+	  velocity = calculateSpeed(frequency,TRANSMITTED_FREQUENCY);
+
 	  HAL_GPIO_WritePin(GPIOB, Backlight_Pin, GPIO_PIN_SET);
-	  lcd16x2_printf("f = %f", frequency);
+	  lcd16x2_printf("v = %f", velocity);
 	  HAL_Delay(100);
 //	  frequency = comparatorCalculateFrequency(&comp);
 
