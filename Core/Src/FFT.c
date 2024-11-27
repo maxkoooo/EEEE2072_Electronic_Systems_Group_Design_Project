@@ -118,6 +118,12 @@ int start_FFT(int *flag, struct ADC_param *ADC_var, struct FFT_res *FFT_var)
 *@retval: none
 */
 
+float calculateSpeed(float detected, float transmitted) {
+	int c = 3e8;
+	float v = (float) c * detected / (2 * transmitted);
+	return v;
+}
+
 void get_velocity(float fdominant, float fwave, float * velocity)
 {
 	if(fwave>0)
