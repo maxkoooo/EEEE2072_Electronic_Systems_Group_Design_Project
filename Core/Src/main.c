@@ -93,6 +93,7 @@ int main(void)
 	char sampling_mode = 'L';
 	int units_mode = 0;
 	float current_frequency = 0;
+	float velocity = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -166,12 +167,12 @@ int main(void)
             break;
         // Up
         case 'U':
-            units_mode = (units_mode + 1)%3;
+            units_mode = (units_mode + 1)%4;
             HAL_Delay(100);
             break;
         // Down
         case 'D':
-        	units_mode = (units_mode + 2)%3;
+        	units_mode = (units_mode + 3)%4;
         	HAL_Delay(100);
         	break;
         // Null
@@ -186,33 +187,42 @@ int main(void)
 		  lcd16x2_2ndLine();
 
 		  current_frequency = ADCCalculateFrequency(&adc, 0);
-		  lcd16x2_printf("f = %.2f", current_frequency);
+		  current_frequency -= current_frequency*0.035;
+		  get_velocity(current_frequency, TRANSMITTED_FREQUENCY, &velocity);
 	  }
 	  else if(sampling_mode == 'R'){ // Comparator
 		  lcd16x2_1stLine();
 	  	  lcd16x2_printf("COMP  :");
 		  lcd16x2_2ndLine();
+
 		  current_frequency = comp.freq;
-		  lcd16x2_printf("f = %.2f", current_frequency);
+		  current_frequency -= current_frequency*0.035;
+		  get_velocity(current_frequency, TRANSMITTED_FREQUENCY, &velocity);
 
 	  }
 
 	  switch(units_mode){
 		  // km/h
 		  case 0:
-//		      lcd16x2_setCursor(1,5);
+			  velocity *= 3.6;
+			  lcd16x2_printf("v = %.2f", velocity);
 		      lcd16x2_printf("km/h");
 		      break;
 		  // m/s
 		  case 1:
-//		      lcd16x2_setCursor(1,6);
+			  lcd16x2_printf("v = %.2f", velocity);
 		      lcd16x2_printf("m/s");
 		      break;
 		  // mph
 		  case 2:
-//		      lcd16x2_setCursor(1,5);
+			  velocity *= 2.237;
+			  lcd16x2_printf("v = %.2f", velocity);
 		      lcd16x2_printf("mph");
 		      break;
+		  // frequency
+		  case 3:
+			  lcd16x2_printf("f = %.2f", current_frequency);
+		      lcd16x2_printf("Hz");
 	  }
 
 	  HAL_Delay(100);
