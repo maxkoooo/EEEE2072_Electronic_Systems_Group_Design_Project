@@ -32,7 +32,7 @@ typedef struct FFT_res
 {
 	float offset;				//sampling offset
 	float fsampling;			//sampling frequency
-	float fbin;					//frequency bin
+	float fbin;				//frequency bin
 	float fdominant;			//dominant frequency
 	float magnitude;			//dominant frequency magnitude
 	uint32_t index;				//FFT dominant frequency index
